@@ -1,6 +1,6 @@
 import json
-import urllib2
-
+# import urllib2   # for Python 2
+import urllib
 import numpy as np
 import pandas as pd
 
@@ -108,12 +108,12 @@ class ANETproposal(object):
         self.proposal = self._import_proposal(proposal_filename)
 
         if self.verbose:
-            print '[INIT] Loaded annotations from {} subset.'.format(subset)
+            print ('[INIT] Loaded annotations from {} subset.'.format(subset))
             nr_gt = len(self.ground_truth)
-            print '\tNumber of ground truth instances: {}'.format(nr_gt)
+            print ('\tNumber of ground truth instances: {}'.format(nr_gt))
             nr_pred = len(self.proposal)
-            print '\tNumber of proposals: {}'.format(nr_pred)
-            print '\tFixed threshold for tiou score: {}'.format(self.tiou_thresholds)
+            print ('\tNumber of proposals: {}'.format(nr_pred))
+            print ('\tFixed threshold for tiou score: {}'.format(self.tiou_thresholds))
 
     def _import_ground_truth(self, ground_truth_filename):
         """Reads ground truth file, checks if it is well formatted, and returns
@@ -199,7 +199,7 @@ class ANETproposal(object):
 
     def evaluate(self):
         """Evaluates a proposal file. To measure the performance of a
-        method for the proposal task, we computes the area under the 
+        method for the proposal task, we computes the area under the
         average recall vs average number of proposals per video curve.
         """
         recall, avg_recall, proposals_per_video = average_recall_vs_avg_nr_proposals(
@@ -210,8 +210,8 @@ class ANETproposal(object):
         area_under_curve = np.trapz(avg_recall, proposals_per_video)
 
         if self.verbose:
-            print '[RESULTS] Performance on ActivityNet proposal task.'
-            print '\tArea Under the AR vs AN curve: {}%'.format(100.*float(area_under_curve)/proposals_per_video[-1])
+            print ('[RESULTS] Performance on ActivityNet proposal task.')
+            print ('\tArea Under the AR vs AN curve: {}%'.format(100.*float(area_under_curve)/proposals_per_video[-1]))
 
         self.recall = recall
         self.avg_recall = avg_recall
@@ -220,9 +220,9 @@ class ANETproposal(object):
 def average_recall_vs_avg_nr_proposals(ground_truth, proposals,
                                        max_avg_nr_proposals=None,
                                        tiou_thresholds=np.linspace(0.5, 0.95, 10)):
-    """ Computes the average recall given an average number 
+    """ Computes the average recall given an average number
         of proposals per video.
-    
+
     Parameters
     ----------
     ground_truth : df
@@ -233,7 +233,7 @@ def average_recall_vs_avg_nr_proposals(ground_truth, proposals,
         Required fields: ['video-id, 't-start', 't-end', 'score']
     tiou_thresholds : 1darray, optional
         array with tiou thresholds.
-        
+
     Outputs
     -------
     recall : 2darray
@@ -291,9 +291,9 @@ def average_recall_vs_avg_nr_proposals(ground_truth, proposals,
         tiou = wrapper_segment_iou(this_video_proposals, this_video_ground_truth)
         score_lst.append(tiou)
 
-    # Given that the length of the videos is really varied, we 
-    # compute the number of proposals in terms of a ratio of the total 
-    # proposals retrieved, i.e. average recall at a percentage of proposals 
+    # Given that the length of the videos is really varied, we
+    # compute the number of proposals in terms of a ratio of the total
+    # proposals retrieved, i.e. average recall at a percentage of proposals
     # retrieved per video.
 
     # Computes average recall.
@@ -304,7 +304,7 @@ def average_recall_vs_avg_nr_proposals(ground_truth, proposals,
     # Iterates over each tiou threshold.
     for ridx, tiou in enumerate(tiou_thresholds):
 
-        # Inspect positives retrieved per video at different 
+        # Inspect positives retrieved per video at different
         # number of proposals (percentage of the total retrieved).
         for i, score in enumerate(score_lst):
             # Total positives per video.
@@ -328,4 +328,3 @@ def average_recall_vs_avg_nr_proposals(ground_truth, proposals,
     proposals_per_video = pcn_lst * (float(total_nr_proposals) / video_lst.shape[0])
 
     return recall, avg_recall, proposals_per_video
-

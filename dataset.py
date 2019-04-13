@@ -24,7 +24,7 @@ class VideoDataSet(data.Dataset):
         self.video_info_path = opt["video_info"]
         self.video_anno_path = opt["video_anno"]
         self._getDatasetDict()
-        
+
     def _getDatasetDict(self):
         anno_df = pd.read_csv(self.video_info_path)
         anno_database= load_json(self.video_anno_path)
@@ -38,7 +38,7 @@ class VideoDataSet(data.Dataset):
             if self.subset in video_subset:
                 self.video_dict[video_name] = video_info
         self.video_list = self.video_dict.keys()
-        print "%s subset video numbers: %d" %(self.subset,len(self.video_list))
+        print ("%s subset video numbers: %d" %(self.subset,len(self.video_list)))
 
     def __getitem__(self, index):
         video_data,anchor_xmin,anchor_xmax = self._get_base_data(index)
@@ -47,7 +47,7 @@ class VideoDataSet(data.Dataset):
             return video_data,match_score_action,match_score_start,match_score_end
         else:
             return index,video_data,anchor_xmin,anchor_xmax
-        
+
     def _get_base_data(self,index):
         video_name=self.video_list[index]
         anchor_xmin=[self.temporal_gap*i for i in range(self.temporal_scale)]
@@ -58,8 +58,8 @@ class VideoDataSet(data.Dataset):
         video_data = torch.transpose(video_data,0,1)
         video_data.float()
         return video_data,anchor_xmin,anchor_xmax
-    
-    def _get_train_label(self,index,anchor_xmin,anchor_xmax): 
+
+    def _get_train_label(self,index,anchor_xmin,anchor_xmax):
         video_name=self.video_list[index]
         video_info=self.video_dict[video_name]
         video_frame=video_info['duration_frame']
@@ -67,14 +67,14 @@ class VideoDataSet(data.Dataset):
         feature_frame=video_info['feature_frame']
         corrected_second=float(feature_frame)/video_frame*video_second
         video_labels=video_info['annotations']
-    
+
         gt_bbox = []
         for j in range(len(video_labels)):
             tmp_info=video_labels[j]
             tmp_start=max(min(1,tmp_info['segment'][0]/corrected_second),0)
             tmp_end=max(min(1,tmp_info['segment'][1]/corrected_second),0)
             gt_bbox.append([tmp_start,tmp_end])
-            
+
         gt_bbox=np.array(gt_bbox)
         gt_xmins=gt_bbox[:,0]
         gt_xmaxs=gt_bbox[:,1]
@@ -83,7 +83,7 @@ class VideoDataSet(data.Dataset):
         gt_len_small=np.maximum(self.temporal_gap,self.boundary_ratio*gt_lens)
         gt_start_bboxs=np.stack((gt_xmins-gt_len_small/2,gt_xmins+gt_len_small/2),axis=1)
         gt_end_bboxs=np.stack((gt_xmaxs-gt_len_small/2,gt_xmaxs+gt_len_small/2),axis=1)
-        
+
         match_score_action=[]
         for jdx in range(len(anchor_xmin)):
             match_score_action.append(np.max(self._ioa_with_anchors(anchor_xmin[jdx],anchor_xmax[jdx],gt_xmins,gt_xmaxs)))
@@ -105,14 +105,14 @@ class VideoDataSet(data.Dataset):
         inter_len = np.maximum(int_xmax - int_xmin, 0.)
         scores = np.divide(inter_len, len_anchors)
         return scores
-    
+
     def __len__(self):
         return len(self.video_list)
 
 
 class ProposalDataSet(data.Dataset):
     def __init__(self,opt,subset="train"):
-        
+
         self.subset=subset
         self.mode = opt["mode"]
         if self.mode == "train":
@@ -123,7 +123,7 @@ class ProposalDataSet(data.Dataset):
         self.video_anno_path = opt["video_anno"]
 
         self._getDatasetDict()
-        
+
     def _getDatasetDict(self):
         anno_df = pd.read_csv(self.video_info_path)
         anno_database= load_json(self.video_anno_path)
@@ -137,7 +137,7 @@ class ProposalDataSet(data.Dataset):
             if self.subset in video_subset:
                 self.video_dict[video_name] = video_info
         self.video_list = self.video_dict.keys()
-        print "%s subset video numbers: %d" %(self.subset,len(self.video_list))
+        print ("%s subset video numbers: %d" %(self.subset,len(self.video_list)))
 
     def __len__(self):
         return len(self.video_list)
@@ -160,4 +160,3 @@ class ProposalDataSet(data.Dataset):
             video_xmin_score = pdf.xmin_score.values[:]
             video_xmax_score = pdf.xmax_score.values[:]
             return video_feature,video_xmin,video_xmax,video_xmin_score,video_xmax_score
-        

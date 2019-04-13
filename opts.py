@@ -1,5 +1,12 @@
-import argparse
+#!/usr/bin/env python4
+# -*- coding: utf-8 -*-
+"""
+Created on 2019/04/15
+author: lujie
+"""
 
+import argparse
+root_path = '/home/lujie/Documents/deep_learning/video_understanding/'
 
 def parse_opt():
     parser = argparse.ArgumentParser()
@@ -16,7 +23,7 @@ def parse_opt():
         '--checkpoint_path',
         type=str,
         default='./checkpoint')
-        
+
     # Overall Dataset settings
     parser.add_argument(
         '--video_info',
@@ -26,7 +33,7 @@ def parse_opt():
         '--video_anno',
         type=str,
         default="./data/activitynet_annotations/anet_anno_action.json")
-    
+
     # TEM Dataset settings
     parser.add_argument(
         '--temporal_scale',
@@ -39,8 +46,10 @@ def parse_opt():
     parser.add_argument(
         '--feature_path',
         type=str,
-        default="./data/activitynet_feature_cuhk/")
-    
+        # default="./data/activitynet_feature_cuhk/"   # TODO
+        default = root_path + 'dataset/ActivityNet/csv_mean_100/'
+        )   # TODO
+
     # PEM Dataset settings
     parser.add_argument(
         '--pem_top_K',
@@ -71,7 +80,7 @@ def parse_opt():
         '--pem_hidden_dim',
         type=int,
         default=256)
-    
+
     # TEM Training settings
     parser.add_argument(
         '--tem_training_lr',
@@ -158,7 +167,7 @@ def parse_opt():
     parser.add_argument(
         '--pgm_thread',
         type=int,
-        default=8)	
+        default=8)
     parser.add_argument(
         '--num_sample_start',
         type=int,
