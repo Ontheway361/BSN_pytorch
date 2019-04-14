@@ -97,7 +97,7 @@ def generateProposals(opt, video_list, video_dict):
                 new_props.append([tmp_xmin,tmp_xmax,tmp_xmin_score,tmp_xmax_score])
 
         new_props = np.stack(new_props)
-        col_name = ["xmin","xmax","xmin_score","xmax_score"]
+        col_name = ["xmin", "xmax", "xmin_score", "xmax_score"]
         new_df = pd.DataFrame(new_props, columns=col_name)
         new_df["score"] = new_df.xmin_score * new_df.xmax_score
         new_df = new_df.sort_values(by="score",ascending=False)  # decending
@@ -119,7 +119,7 @@ def generateProposals(opt, video_list, video_dict):
                 tmp_new_iou = max(iou_with_anchors(new_df.xmin.values[j], new_df.xmax.values[j], gt_xmins, gt_xmaxs))
                 new_iou_list.append(tmp_new_iou)
 
-            new_ioa_list=[]
+            new_ioa_list = []
             for j in range(len(new_df)):
                 tmp_new_ioa = max(ioa_with_anchors(new_df.xmin.values[j], new_df.xmax.values[j], gt_xmins, gt_xmaxs))
                 new_ioa_list.append(tmp_new_ioa)
@@ -167,10 +167,10 @@ def generateFeature(opt, video_list, video_dict):
 
     for video_name in video_list:
 
-        adf = pd.read_csv("./output/TEM_results/"+video_name+".csv")
+        adf = pd.read_csv("./output/TEM_results/"+video_name+".csv")   # probality
         score_action = adf.action.values[:]
-        video_scale = len(adf)
-        video_extend = video_scale // 4 + 10       # TODO
+        video_len = len(adf)
+        video_extend = video_len // 4 + 10       # TODO
 
         pdf = pd.read_csv("./output/PGM_proposals/"+video_name+".csv")
         video_subset = video_dict[video_name]['subset']
@@ -184,45 +184,47 @@ def generateFeature(opt, video_list, video_dict):
         seg_xmins, seg_xmaxs = adf.xmin.values[:], adf.xmax.values[:]
         video_gap = seg_xmaxs[0] - seg_xmins[0]
 
-        part_a = [-video_gap/2-(video_extend-1-i)*video_gap for i in range(video_extend)]
-        part_b = [video_gap/2+i*video_gap for i in range(video_scale)]
-        part_c = [video_gap/2+seg_xmaxs[-1]+i*video_gap for i in range(video_extend)]
-        tmp_x =  part_a + part_b + part_c
+        part_a = [-video_gap / 2 - (video_extend-1-i) * video_gap for i in range(video_extend)]
+        part_b = [video_gap / 2 + i * video_gap for i in range(video_len)]
+        part_c = [video_gap / 2 + seg_xmaxs[-1] + i * video_gap for i in range(video_extend)]
+        tmp_x  =  part_a + part_b + part_c
 
         f_action = interp1d(tmp_x, score_action, axis=0)
 
-        feature_bsp=[]
+        feature_bsp = []
         for idx in range(len(pdf)):
-            xmin=pdf.xmin.values[idx]
-            xmax=pdf.xmax.values[idx]
-            xlen=xmax-xmin
-            xmin_0=xmin-xlen * opt["bsp_boundary_ratio"]
-            xmin_1=xmin+xlen * opt["bsp_boundary_ratio"]
-            xmax_0=xmax-xlen * opt["bsp_boundary_ratio"]
-            xmax_1=xmax+xlen * opt["bsp_boundary_ratio"]
+
+            xmin = pdf.xmin.values[idx]
+            xmax = pdf.xmax.values[idx]
+            xlen = xmax - xmin
+            xmin_0 = xmin - xlen * opt["bsp_boundary_ratio"]
+            xmin_1 = xmin + xlen * opt["bsp_boundary_ratio"]
+            xmax_0 = xmax - xlen * opt["bsp_boundary_ratio"]
+            xmax_1 = xmax + xlen * opt["bsp_boundary_ratio"]
 
             #start
-            plen_start= (xmin_1-xmin_0)/(num_sample_start-1)
+            plen_start = (xmin_1 - xmin_0) / (num_sample_start - 1)
             plen_sample = plen_start / num_sample_interpld
-            tmp_x_new = [ xmin_0 - plen_start/2 + plen_sample * ii for ii in range(num_sample_start*num_sample_interpld +1 )]
+            tmp_x_new = [ xmin_0 - plen_start / 2 + plen_sample * i for i in range(num_sample_start*num_sample_interpld + 1 )]
             tmp_y_new_start_action = f_action(tmp_x_new)
-            tmp_y_new_start = [np.mean(tmp_y_new_start_action[ii*num_sample_interpld:(ii+1)*num_sample_interpld+1]) for ii in range(num_sample_start) ]
+            tmp_y_new_start = [np.mean(tmp_y_new_start_action[i*num_sample_interpld:(i+1)*num_sample_interpld+1]) for i in range(num_sample_start)]
 
             #end
             plen_end= (xmax_1-xmax_0)/(num_sample_end-1)
             plen_sample = plen_end / num_sample_interpld
-            tmp_x_new = [ xmax_0 - plen_end/2 + plen_sample * ii for ii in range(num_sample_end*num_sample_interpld +1 )]
-            tmp_y_new_end_action=f_action(tmp_x_new)
-            tmp_y_new_end = [np.mean(tmp_y_new_end_action[ii*num_sample_interpld:(ii+1)*num_sample_interpld+1]) for ii in range(num_sample_end) ]
+            tmp_x_new = [ xmax_0 - plen_end/2 + plen_sample * i for i in range(num_sample_end*num_sample_interpld +1 )]
+            tmp_y_new_end_action = f_action(tmp_x_new)
+            tmp_y_new_end = [np.mean(tmp_y_new_end_action[i*num_sample_interpld:(i+1)*num_sample_interpld+1]) for i in range(num_sample_end)]
 
             #action
             plen_action= (xmax-xmin)/(num_sample_action-1)
             plen_sample = plen_action / num_sample_interpld
-            tmp_x_new = [ xmin - plen_action/2 + plen_sample * ii for ii in range(num_sample_action*num_sample_interpld +1 )]
-            tmp_y_new_action=f_action(tmp_x_new)
-            tmp_y_new_action = [np.mean(tmp_y_new_action[ii*num_sample_interpld:(ii+1)*num_sample_interpld+1]) for ii in range(num_sample_action) ]
-            tmp_feature = np.concatenate([tmp_y_new_action,tmp_y_new_start,tmp_y_new_end])
+            tmp_x_new = [ xmin - plen_action/2 + plen_sample * i for i in range(num_sample_action*num_sample_interpld +1 )]
+            tmp_y_new_action = f_action(tmp_x_new)
+            tmp_y_new_action = [np.mean(tmp_y_new_action[i*num_sample_interpld:(i+1)*num_sample_interpld+1]) for i in range(num_sample_action)]
+            tmp_feature = np.concatenate([tmp_y_new_action, tmp_y_new_start, tmp_y_new_end])
             feature_bsp.append(tmp_feature)
+
         feature_bsp = np.array(feature_bsp)
         np.save("./output/PGM_feature/"+video_name,feature_bsp)
 
