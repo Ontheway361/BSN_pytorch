@@ -12,18 +12,18 @@ import torch.nn.functional as F
 
 
 def bi_loss(scores, anchors, opt):
-    ''' binary logistic regression loss function '''
+    ''' weighted binary logistic regression loss function '''
 
     scores = scores.view(-1).cuda()
     anchors = anchors.contiguous().view(-1)
 
-    pmask = (scores>opt["tem_match_thres"]).float().cuda()
+    pmask = (scores>opt["tem_match_thres"]).float().cuda()     # default : 0.5
     num_positive, num_entries = torch.sum(pmask), len(scores)
 
-    ratio = num_entries / num_positive
+    ratio = num_entries / num_positive    # 
 
-    coef_0 = 0.5 * ratio / (ratio - 1)    # alpha_pos
-    coef_1 = coef_0 * (ratio - 1)         # alpha_neg
+    coef_0 = 0.5 * ratio / (ratio - 1)    # 0.5 * num_entries / num_neg
+    coef_1 = coef_0 * (ratio - 1)         # 0.5 * num_entries / num_pos
     loss = coef_1 * pmask * torch.log(anchors + 1e-5) + coef_0 * (1.0-pmask) * torch.log(1.0- anchors + 1e-5)
     loss =-torch.mean(loss)
     num_sample = [torch.sum(pmask), ratio]

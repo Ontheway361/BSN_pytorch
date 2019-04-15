@@ -37,8 +37,8 @@ def train_TEM(data_loader, model, optimizer, epoch, writer, opt):
     epoch_start_loss, epoch_end_loss = 0, 0
 
     for n_iter, (input_data,label_action,label_start,label_end) in enumerate(data_loader):
-
-        TEM_output = model(input_data)
+        
+        TEM_output = model(input_data) # batch_size x 3 x num_snappets    # TODO
         loss = TEM_loss_function(label_action, label_start, label_end, TEM_output, opt)
         cost = loss["cost"]
 
@@ -94,22 +94,22 @@ def test_TEM(data_loader, model, epoch, writer, opt):
 
 
 def BSN_Train_TEM(opt):
-    ''' train the TEM '''
+    '''Including the train and test module'''
 
     writer = SummaryWriter()
 
     model = TEM(opt)
-    # model = torch.nn.DataParallel(model, device_ids=[0]).cuda()  # split two-steps
+    model = torch.nn.DataParallel(model, device_ids=[0]).cuda()  # split two-steps
 
     optimizer = optim.Adam(model.parameters(),lr=opt["tem_training_lr"],weight_decay = opt["tem_weight_decay"])
 
     train_loader = torch.utils.data.DataLoader(VideoDataSet(opt,subset="train"),
-                                                batch_size=model.batch_size, shuffle=True,
+                                                batch_size=model.module.batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True)
 
     test_loader = torch.utils.data.DataLoader(VideoDataSet(opt,subset="validation"),
                                                 # batch_size=model.module.batch_size, shuffle=False,
-                                                batch_size=model.batch_size, shuffle=False,
+                                                batch_size=model.module.batch_size, shuffle=False,
                                                 num_workers=8, pin_memory=True, drop_last=True)
 
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,step_size = opt["tem_step_size"], gamma = opt["tem_step_gamma"])
@@ -122,8 +122,13 @@ def BSN_Train_TEM(opt):
 
 
 def BSN_inference_TEM(opt):
-    ''' Inference of TEM '''
-
+    '''
+    Inference of TEM
+    step - 1. load the best_model 
+    step - 2. the output of TEM is three pdf-curve for each scaled-video 
+    '''
+    
+    # step - 1
     model = TEM(opt)
     checkpoint = torch.load(opt["checkpoint_path"]+"/tem_best.pth.tar")
     base_dict = {'.'.join(k.split('.')[1:]): v for k,v in list(checkpoint['state_dict'].items())}
@@ -131,32 +136,35 @@ def BSN_inference_TEM(opt):
     model = torch.nn.DataParallel(model, device_ids=[0]).cuda()
 
     model.eval()
-
+    
+    # step - 2
+    # set subset = 'full' to generate the pdf of all video
     test_loader = torch.utils.data.DataLoader(VideoDataSet(opt,subset="full"),
                                                 batch_size=model.module.batch_size, shuffle=False,
                                                 num_workers=8, pin_memory=True,drop_last=False)
 
-    columns=["action","start","end","xmin","xmax"]
+    columns = ['action', 'start', 'end', 'xmin', 'xmax']
 
     for index_list, input_data, anchor_xmin, anchor_xmax in test_loader:
 
         TEM_output = model(input_data).detach().cpu().numpy()
         batch_action = TEM_output[:,0,:]
-        batch_start = TEM_output[:,1,:]
-        batch_end = TEM_output[:,2,:]
+        batch_start  = TEM_output[:,1,:]
+        batch_end    = TEM_output[:,2,:]
 
-        index_list = index_list.numpy()
+        index_list  = index_list.numpy()
         anchor_xmin = np.array([x.numpy()[0] for x in anchor_xmin])
         anchor_xmax = np.array([x.numpy()[0] for x in anchor_xmax])
 
-        for batch_idx,full_idx in enumerate(index_list):
-            video = test_loader.dataset.video_list[full_idx]
+        for batch_idx, full_idx in enumerate(index_list):
+
+            video_name = test_loader.dataset.video_list[full_idx]
             video_action = batch_action[batch_idx]
             video_start = batch_start[batch_idx]
             video_end = batch_end[batch_idx]
-            video_result = np.stack((video_action,video_start,video_end,anchor_xmin,anchor_xmax),axis=1)
-            video_df = pd.DataFrame(video_result,columns=columns)
-            video_df.to_csv("./output/TEM_results/"+video+".csv",index=False)
+            video_result = np.stack((video_action, video_start, video_end, anchor_xmin, anchor_xmax),axis=1)
+            video_df = pd.DataFrame(video_result, columns=columns)
+            video_df.to_csv('./output/TEM_results/' + video_name + '.csv', index=False)
 
 
 def train_PEM(data_loader, model, optimizer, epoch, writer, opt):
@@ -234,7 +242,7 @@ def BSN_Train_PEM(opt):
     for epoch in range(opt["pem_epoch"]):
         scheduler.step()
         train_PEM(train_loader, model, optimizer, epoch, writer, opt)
-        test_PEM(test_loader, model, epoch writer, opt)
+        test_PEM(test_loader, model, epoch, writer, opt)
 
     writer.close()
 
@@ -333,5 +341,5 @@ if __name__ == '__main__':
     # opt_file=open(opt["checkpoint_path"]+"/opts.json","w")
     # json.dump(opt,opt_file)
     # opt_file.close()
-    # opt['module'] = 'PGM'
+    opt['mode'] = 'inference'
     engine_runner(opt)

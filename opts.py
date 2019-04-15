@@ -6,7 +6,9 @@ author: lujie
 """
 
 import argparse
-root_path = '/home/lujie/Documents/deep_learning/video_understanding/'
+#root_path = '/home/lujie/Documents/deep_learning/video_understanding/'
+root_path = '/home/gpu3/lujie/video_understanding/'
+
 
 def parse_opt():
     parser = argparse.ArgumentParser()
@@ -47,7 +49,7 @@ def parse_opt():
         '--feature_path',
         type=str,
         # default="./data/activitynet_feature_cuhk/"   # TODO
-        default = root_path + 'dataset/ActivityNet/csv_mean_100/'
+        default = root_path + 'dataset/ActivityNet/'   # csv_mean_100
         )   # TODO
 
     # PEM Dataset settings
