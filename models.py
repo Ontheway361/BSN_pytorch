@@ -1,4 +1,10 @@
+#!/usr/bin/env python4
 # -*- coding: utf-8 -*-
+"""
+Created on 2019/04/15
+author: lujie
+"""
+
 import numpy as np
 import torch
 from torch.autograd import Variable
@@ -69,6 +75,6 @@ class PEM(torch.nn.Module):
             self.weight_init(m)
 
     def forward(self, x):
-        x = F.relu(0.1*self.fc1(x))
-        x = torch.sigmoid(0.1*self.fc2(x))
+        x = F.relu(0.1*self.fc1(x))   # why ? 0.1
+        x = torch.sigmoid(0.1*self.fc2(x)) # avoid ... 
         return x

@@ -27,6 +27,7 @@ from IPython import embed
 
 sys.dont_write_bytecode = True
 
+
 def train_TEM(data_loader, model, optimizer, epoch, writer, opt):
     ''' Training of TEM with look-once dataset '''
 
@@ -93,7 +94,10 @@ def test_TEM(data_loader, model, epoch, writer, opt):
 
 
 def BSN_Train_TEM(opt):
+    ''' train the TEM '''
+
     writer = SummaryWriter()
+
     model = TEM(opt)
     # model = torch.nn.DataParallel(model, device_ids=[0]).cuda()  # split two-steps
 
@@ -102,7 +106,7 @@ def BSN_Train_TEM(opt):
     train_loader = torch.utils.data.DataLoader(VideoDataSet(opt,subset="train"),
                                                 batch_size=model.batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True)
-                                                
+
     test_loader = torch.utils.data.DataLoader(VideoDataSet(opt,subset="validation"),
                                                 # batch_size=model.module.batch_size, shuffle=False,
                                                 batch_size=model.batch_size, shuffle=False,
@@ -176,37 +180,45 @@ def train_PEM(data_loader, model, optimizer, epoch, writer, opt):
 
 
 def test_PEM(data_loader, model, epoch, writer, opt):
+
     model.eval()
+
     epoch_iou_loss = 0
 
     for n_iter,(input_data,label_iou) in enumerate(data_loader):
         PEM_output = model(input_data)
-        iou_loss = PEM_loss_function(PEM_output,label_iou,model,opt)
+        iou_loss = PEM_loss_function(PEM_output, label_iou, model, opt)
         epoch_iou_loss += iou_loss.cpu().detach().numpy()
 
     writer.add_scalars('data/iou_loss', {'validation': epoch_iou_loss/(n_iter+1)}, epoch)
 
     print ("PEM testing  loss(epoch %d): iou - %.04f" %(epoch,epoch_iou_loss/(n_iter+1)))
 
-    state = {'epoch': epoch + 1,
-                'state_dict': model.state_dict()}
+    state = {'epoch': epoch + 1, 'state_dict': model.state_dict()}
     torch.save(state, opt["checkpoint_path"]+"/pem_checkpoint.pth.tar" )
-    if epoch_iou_loss<model.module.pem_best_loss :
+
+    if epoch_iou_loss < model.module.pem_best_loss :
         model.module.pem_best_loss = np.mean(epoch_iou_loss)
         torch.save(state, opt["checkpoint_path"]+"/pem_best.pth.tar" )
 
 
 def BSN_Train_PEM(opt):
+    '''
+    Proposal estimate module
+    input : proposal as (ts, te, f_bsp)
+    output : proposal as (ts, te, p_conf, g_iou)
+    '''
+
     writer = SummaryWriter()
     model = PEM(opt)
     model = torch.nn.DataParallel(model, device_ids=[0]).cuda()
 
-    optimizer = optim.Adam(model.parameters(),lr=opt["pem_training_lr"],weight_decay = opt["pem_weight_decay"])
+    optimizer = optim.Adam(model.parameters(), lr=opt["pem_training_lr"], weight_decay=opt["pem_weight_decay"])
 
     def collate_fn(batch):
         batch_data = torch.cat([x[0] for x in batch])
         batch_iou = torch.cat([x[1] for x in batch])
-        return batch_data,batch_iou
+        return batch_data, batch_iou
 
     train_loader = torch.utils.data.DataLoader(ProposalDataSet(opt,subset="train"),
                                                 batch_size=model.module.batch_size, shuffle=True,
@@ -217,12 +229,12 @@ def BSN_Train_PEM(opt):
                                                 num_workers=8, pin_memory=True,drop_last=True,collate_fn=collate_fn)
 
 
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer,step_size = opt["pem_step_size"], gamma = opt["pem_step_gamma"])
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=opt["pem_step_size"], gamma=opt["pem_step_gamma"])
 
     for epoch in range(opt["pem_epoch"]):
         scheduler.step()
-        train_PEM(train_loader,model,optimizer,epoch,writer,opt)
-        test_PEM(test_loader,model,epoch,writer,opt)
+        train_PEM(train_loader, model, optimizer, epoch, writer, opt)
+        test_PEM(test_loader, model, epoch writer, opt)
 
     writer.close()
 

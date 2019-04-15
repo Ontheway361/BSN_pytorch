@@ -113,50 +113,56 @@ class VideoDataSet(data.Dataset):
 class ProposalDataSet(data.Dataset):
     def __init__(self,opt,subset="train"):
 
-        self.subset=subset
+        self.subset = subset
         self.mode = opt["mode"]
         if self.mode == "train":
             self.top_K = opt["pem_top_K"]
         else:
             self.top_K = opt["pem_top_K_inference"]
-        self.video_info_path = opt["video_info"]
-        self.video_anno_path = opt["video_anno"]
 
+        self.video_info_path = opt["video_info"]   #  info of video
+        self.video_anno_path = opt["video_anno"]   #  annotations of video
+        self.video_list = None
         self._getDatasetDict()
 
+
     def _getDatasetDict(self):
-        anno_df = pd.read_csv(self.video_info_path)
-        anno_database= load_json(self.video_anno_path)
+        ''' Match the annotations for each video from anet_anno_action '''
+
+        df_video_info = pd.read_csv(self.video_info_path)
+        df_anno_info  = load_json(self.video_anno_path)
         self.video_dict = {}
-        for i in range(len(anno_df)):
-            video_name=anno_df.video.values[i]
-            video_info=anno_database[video_name]
-            video_subset=anno_df.subset.values[i]
+        for i in range(len(df_video_info)):
+            video_name = df_video_info.video.values[i]
+            video_subset = df_video_info.subset.values[i]
+            anno_info = df_anno_info[video_name]
             if self.subset == "full":
-                self.video_dict[video_name] = video_info
+                self.video_dict[video_name] = anno_info
             if self.subset in video_subset:
-                self.video_dict[video_name] = video_info
-        self.video_list = self.video_dict.keys()
-        print ("%s subset video numbers: %d" %(self.subset,len(self.video_list)))
+                self.video_dict[video_name] = anno_info
+        self.video_list = list(self.video_dict.keys())
+        print ("%s subset video numbers: %d" %(self.subset, len(self.video_list)))
 
     def __len__(self):
         return len(self.video_list)
 
     def __getitem__(self, index):
+        ''' Return video_feature and video match_iou '''
+        
         video_name = self.video_list[index]
-        pdf=pandas.read_csv("./output/PGM_proposals/"+video_name+".csv")
-        pdf=pdf[:self.top_K]
-        video_feature = numpy.load("./output/PGM_feature/" + video_name+".npy")
+        # proposal-style : (ts, te, f_bsp)
+        df_prop = pandas.read_csv("./output/PGM_proposals/"+video_name+".csv")
+        df_prop = df_prop[:self.top_K]   # BUG
+        video_feature = numpy.load("./output/PGM_feature/"+video_name+".npy")
         video_feature = video_feature[:self.top_K,:]
-        #print len(video_feature),len(pdf)
         video_feature = torch.Tensor(video_feature)
 
         if self.mode == "train":
-            video_match_iou = torch.Tensor(pdf.match_iou.values[:])
-            return video_feature,video_match_iou
+            video_match_iou = torch.Tensor(df_prop.match_iou.values[:])
+            return video_feature, video_match_iou
         else:
-            video_xmin =pdf.xmin.values[:]
-            video_xmax =pdf.xmax.values[:]
-            video_xmin_score = pdf.xmin_score.values[:]
-            video_xmax_score = pdf.xmax_score.values[:]
-            return video_feature,video_xmin,video_xmax,video_xmin_score,video_xmax_score
+            video_xmin = df_prop.xmin.values[:]
+            video_xmax = df_prop.xmax.values[:]
+            video_xmin_score = df_prop.xmin_score.values[:]
+            video_xmax_score = df_prop.xmax_score.values[:]
+            return video_feature, video_xmin, video_xmax, video_xmin_score, video_xmax_score

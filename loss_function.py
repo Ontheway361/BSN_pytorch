@@ -10,6 +10,7 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 
+
 def bi_loss(scores, anchors, opt):
     ''' binary logistic regression loss function '''
 
@@ -38,9 +39,9 @@ def TEM_loss_calc(anchors_action,anchors_start,anchors_end,
     loss_start_small, num_sample_start_small = bi_loss(match_scores_start, anchors_start, opt)
     loss_end_small, num_sample_end_small = bi_loss(match_scores_end, anchors_end, opt)
 
-    loss_dict={"loss_action":loss_action,"num_sample_action":num_sample_action,
-               "loss_start":loss_start_small,"num_sample_start":num_sample_start_small,
-               "loss_end":loss_end_small,"num_sample_end":num_sample_end_small}
+    loss_dict={"loss_action":loss_action, "num_sample_action":num_sample_action,
+               "loss_start":loss_start_small, "num_sample_start":num_sample_start_small,
+               "loss_end":loss_end_small, "num_sample_end":num_sample_end_small}
 
     return loss_dict
 
@@ -71,7 +72,7 @@ def PEM_loss_function(anchors_iou, match_iou, model, opt):
     num_m = torch.sum(u_mmask)
     num_l = torch.sum(u_lmask)
 
-    r_m= model.module.u_ratio_m * num_h/(num_m)
+    r_m = model.module.u_ratio_m * num_h/(num_m)
     r_m = torch.min(r_m, torch.Tensor([1.0]).cuda())[0]
     u_smmask = torch.Tensor(np.random.rand(u_hmask.size()[0])).cuda()
     u_smmask = u_smmask*u_mmask
