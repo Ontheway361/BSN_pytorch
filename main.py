@@ -248,34 +248,46 @@ def BSN_Train_PEM(opt):
 
 
 def BSN_inference_PEM(opt):
+    ''' 
+    step - 1. load the PEM-model
+    step - 2. load the dataset
+    '''
+    
+    # step - 1
     model = PEM(opt)
     checkpoint = torch.load(opt["checkpoint_path"]+"/pem_best.pth.tar")
     base_dict = {'.'.join(k.split('.')[1:]): v for k,v in list(checkpoint['state_dict'].items())}
     model.load_state_dict(base_dict)
+
     model = torch.nn.DataParallel(model, device_ids=[0]).cuda()
+
     model.eval()
-
-    test_loader = torch.utils.data.DataLoader(ProposalDataSet(opt,subset=opt["pem_inference_subset"]),
+    
+    # pem_inference_subset = 'validation'
+    test_loader = torch.utils.data.DataLoader(ProposalDataSet(opt, subset=opt["pem_inference_subset"]),   
                                                 batch_size=model.module.batch_size, shuffle=False,
-                                                num_workers=8, pin_memory=True,drop_last=False)
+                                                num_workers=8, pin_memory=True, drop_last=False)
 
-    for idx,(video_feature,video_xmin,video_xmax,video_xmin_score,video_xmax_score) in enumerate(test_loader):
+    count = 0
+    for idx, (video_feature, video_xmin, video_xmax, video_xmin_score, video_xmax_score) in enumerate(test_loader):
+         
         video_name = test_loader.dataset.video_list[idx]
-        video_conf = model(video_feature).view(-1).detach().cpu().numpy()
+        video_conf = model(video_feature).view(-1).detach().cpu().numpy() # prob for proposal
         video_xmin = video_xmin.view(-1).cpu().numpy()
         video_xmax = video_xmax.view(-1).cpu().numpy()
         video_xmin_score = video_xmin_score.view(-1).cpu().numpy()
         video_xmax_score = video_xmax_score.view(-1).cpu().numpy()
 
-        df=pd.DataFrame()
-        df["xmin"]=video_xmin
-        df["xmax"]=video_xmax
-        df["xmin_score"]=video_xmin_score
-        df["xmax_score"]=video_xmax_score
-        df["iou_score"]=video_conf
+        df = pd.DataFrame()
+        df['xmin'] = video_xmin
+        df['xmax'] = video_xmax
+        df['xmin_score'] = video_xmin_score
+        df['xmax_score'] = video_xmax_score
+        df['iou_score'] = video_conf
 
         df.to_csv("./output/PEM_results/"+video_name+".csv",index=False)
-
+        count += 1
+    print('there are %5d results' % count)
 
 def engine_runner(opt):
 
@@ -294,18 +306,20 @@ def engine_runner(opt):
             print ("Wrong mode. TEM has two modes: train and inference")
 
     elif opt["module"] == "PGM":
+
         if not os.path.exists("output/PGM_proposals"):
             os.makedirs("output/PGM_proposals")
         print ("PGM: start generate proposals")
         PGM_proposal_generation(opt)
         print ("PGM: finish generate proposals")
-
+        
+        '''
         if not os.path.exists("output/PGM_feature"):
             os.makedirs("output/PGM_feature")
         print ("PGM: start generate BSP feature")
         PGM_feature_generation(opt)
         print ("PGM: finish generate BSP feature")
-
+        '''
     elif opt["module"] == "PEM":
         if opt["mode"] == "train":
             print ("PEM training start")
@@ -341,5 +355,6 @@ if __name__ == '__main__':
     # opt_file=open(opt["checkpoint_path"]+"/opts.json","w")
     # json.dump(opt,opt_file)
     # opt_file.close()
+    opt['module'] = 'PEM'
     opt['mode'] = 'inference'
     engine_runner(opt)

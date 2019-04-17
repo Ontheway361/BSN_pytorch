@@ -5,10 +5,11 @@ Created on 2019/04/15
 author: lujie
 """
 
+import json
 import numpy as np
 import pandas as pd
-import json
 import multiprocessing as mp
+from IPython import embed
 
 def load_json(file):
     with open(file) as json_file:
@@ -16,21 +17,20 @@ def load_json(file):
         return data
 
 def getDatasetDict(opt):
-    df=pd.read_csv(opt["video_info"])
-    json_data= load_json(opt["video_anno"])
-    database=json_data
-    video_dict={}
+    df = pd.read_csv(opt["video_info"])
+    database = load_json(opt["video_anno"])
+    video_dict = {}
     for i in range(len(df)):
-        video_name=df.video.values[i]
-        video_info=database[video_name]
-        video_new_info={}
-        video_new_info['duration_frame']=video_info['duration_frame']
-        video_new_info['duration_second']=video_info['duration_second']
-        video_new_info["feature_frame"]=video_info['feature_frame']
-        video_subset=df.subset.values[i]
-        video_new_info['annotations']=video_info['annotations']
-        if video_subset==opt["pem_inference_subset"]:
-            video_dict[video_name]=video_new_info
+        video_name = df.video.values[i]
+        video_info = database[video_name]
+        video_new_info = {}
+        video_new_info['duration_frame'] = video_info['duration_frame']
+        video_new_info['duration_second'] = video_info['duration_second']
+        video_new_info["feature_frame"]  = video_info['feature_frame']
+        video_subset = df.subset.values[i]
+        video_new_info['annotations'] = video_info['annotations']
+        if video_subset == opt["pem_inference_subset"]:
+            video_dict[video_name] = video_new_info
     return video_dict
 
 def iou_with_anchors(anchors_min,anchors_max,len_anchors,box_min,box_max):

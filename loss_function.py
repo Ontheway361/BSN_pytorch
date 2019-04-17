@@ -61,31 +61,39 @@ def TEM_loss_function(y_action, y_start, y_end, TEM_output, opt):
 
 
 def PEM_loss_function(anchors_iou, match_iou, model, opt):
-    ''' '''
+    '''
+    Loss of the proposal estimation module 
+    Input :
+        anchors_iou : output of PEM-model 
+        match_iou   : iou between target proposal and gt-proposal
+        model       : PEM
+        opt         : parameters
+    '''
+    
     match_iou = match_iou.cuda()
     anchors_iou = anchors_iou.view(-1)
-    u_hmask = (match_iou>opt["pem_high_iou_thres"]).float()
-    u_mmask = ((match_iou<=opt["pem_high_iou_thres"]) & (match_iou>opt["pem_low_iou_thres"])).float()
-    u_lmask = (match_iou<opt["pem_low_iou_thres"]).float()
+    u_hmask = (match_iou>opt["pem_high_iou_thres"]).float()   # 0.6
+    u_mmask = ((match_iou<=opt["pem_high_iou_thres"]) & (match_iou>opt["pem_low_iou_thres"])).float() 
+    u_lmask = (match_iou<opt["pem_low_iou_thres"]).float()    # 0.2
 
     num_h = torch.sum(u_hmask)
     num_m = torch.sum(u_mmask)
     num_l = torch.sum(u_lmask)
 
-    r_m = model.module.u_ratio_m * num_h/(num_m)
+    r_m = model.module.u_ratio_m * num_h / num_m       # default : u_ratio_m = 1.0
     r_m = torch.min(r_m, torch.Tensor([1.0]).cuda())[0]
     u_smmask = torch.Tensor(np.random.rand(u_hmask.size()[0])).cuda()
-    u_smmask = u_smmask*u_mmask
-    u_smmask = (u_smmask > (1. -r_m)).float()
+    u_smmask = u_smmask * u_mmask
+    u_smmask = (u_smmask > (1.0-r_m)).float()
 
-    r_l = model.module.u_ratio_l * num_h/(num_l)
+    r_l = model.module.u_ratio_l * num_h / num_l       # default : u_ratio_l = 2 
     r_l = torch.min(r_l, torch.Tensor([1.0]).cuda())[0]
     u_slmask = torch.Tensor(np.random.rand(u_hmask.size()[0])).cuda()
-    u_slmask = u_slmask*u_lmask
-    u_slmask = (u_slmask > (1. -r_l)).float()
+    u_slmask = u_slmask * u_lmask
+    u_slmask = (u_slmask > (1.0-r_l)).float()
 
-    iou_weights = u_hmask+u_smmask+u_slmask
-    iou_loss = F.smooth_l1_loss(anchors_iou,match_iou)
+    iou_weights = u_hmask + u_smmask + u_slmask
+    iou_loss = F.smooth_l1_loss(anchors_iou, match_iou)  # L1 + L2
     iou_loss = torch.sum(iou_loss * iou_weights) / torch.sum(iou_weights)
 
     return iou_loss

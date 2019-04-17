@@ -13,6 +13,7 @@ import json
 import torch.utils.data as data
 import os
 import torch
+from IPython import embed
 
 def load_json(file):
     with open(file) as json_file:
@@ -143,9 +144,9 @@ class ProposalDataSet(data.Dataset):
         self.subset = subset
         self.mode = opt["mode"]
         if self.mode == "train":
-            self.top_K = opt["pem_top_K"]
+            self.top_K = opt["pem_top_K"]  # 500
         else:
-            self.top_K = opt["pem_top_K_inference"]
+            self.top_K = opt["pem_top_K_inference"] # 1000
 
         self.video_info_path = opt["video_info"]   #  info of video
         self.video_anno_path = opt["video_anno"]   #  annotations of video
@@ -159,14 +160,18 @@ class ProposalDataSet(data.Dataset):
         df_video_info = pd.read_csv(self.video_info_path)
         df_anno_info  = load_json(self.video_anno_path)
         self.video_dict = {}
+ 
         for i in range(len(df_video_info)):
+
             video_name = df_video_info.video.values[i]
             video_subset = df_video_info.subset.values[i]
             anno_info = df_anno_info[video_name]
+
             if self.subset == "full":
                 self.video_dict[video_name] = anno_info
             if self.subset in video_subset:
                 self.video_dict[video_name] = anno_info
+
         self.video_list = list(self.video_dict.keys())
         print ("%s subset video numbers: %d" %(self.subset, len(self.video_list)))
 
@@ -177,19 +182,36 @@ class ProposalDataSet(data.Dataset):
         ''' Return video_feature and video match_iou '''
         
         video_name = self.video_list[index]
-        # proposal-style : (ts, te, f_bsp)
-        df_prop = pandas.read_csv("./output/PGM_proposals/"+video_name+".csv")
-        df_prop = df_prop[:self.top_K]   # BUG
-        video_feature = numpy.load("./output/PGM_feature/"+video_name+".npy")
-        video_feature = video_feature[:self.top_K,:]
+       
+        # there may be multi-proposals for each video
+        # bsp_feat for each proposal
+        video_feature = numpy.load('./output/PGM_feature/' + video_name + '.npy')
+        video_feature = video_feature[:self.top_K, :]
         video_feature = torch.Tensor(video_feature)
+        
+        num_prop = len(video_feature)
+   
+        # [start, end, start_score, end_score, score, _match_iou, _match_ioa], where score = start_score * end_score
+        df_prop = pandas.read_csv('./output/PGM_proposals/' + video_name + '.csv')
+        df_prop = df_prop[:self.top_K]   # BUG
 
-        if self.mode == "train":
-            video_match_iou = torch.Tensor(df_prop.match_iou.values[:])
-            return video_feature, video_match_iou
+        # there may be multi-proposals for each video
+        # bsp_feat for each proposal
+        video_feature = numpy.load('./output/PGM_feature/' + video_name + '.npy')
+        video_feature = video_feature[:self.top_K, :]
+        video_feature = torch.Tensor(video_feature)
+    
+        cache = ()
+        if self.mode == 'train':
+            video_match_iou = torch.Tensor(df_prop.match_iou.values[:])  
+            cache = (video_feature, video_match_iou)
+            #return video_feature, video_match_iou
         else:
             video_xmin = df_prop.xmin.values[:]
             video_xmax = df_prop.xmax.values[:]
             video_xmin_score = df_prop.xmin_score.values[:]
             video_xmax_score = df_prop.xmax_score.values[:]
-            return video_feature, video_xmin, video_xmax, video_xmin_score, video_xmax_score
+            cache = (video_feature, video_xmin, video_xmax, video_xmin_score, video_xmax_score)
+            #embed()
+            #return video_feature, video_xmin, video_xmax, video_xmin_score, video_xmax_score
+        return cache 

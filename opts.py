@@ -60,7 +60,7 @@ def parse_opt():
     parser.add_argument(
         '--pem_top_K_inference',
         type=int,
-        default=1000)
+        default=100)    # default : 1000
 
     # TEM model settings
     parser.add_argument(
