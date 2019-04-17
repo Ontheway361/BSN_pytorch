@@ -1,16 +1,21 @@
+#!/usr/bin/env python4
 # -*- coding: utf-8 -*-
+"""
+Created on 2019/04/17
+author: lujie
+"""
+
 import sys
-sys.path.append('./Evaluation')
-from eval_proposal import ANETproposal
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+from eval_proposal import ANETproposal
 
-def run_evaluation(ground_truth_filename, proposal_filename,
-                   max_avg_nr_proposals=100,
-                   tiou_thresholds=np.linspace(0.5, 0.95, 10),
-                   subset='validation'):
+sys.path.append('./Evaluation')
 
-    anet_proposal = ANETproposal(ground_truth_filename, proposal_filename,
+def run_evaluation(gt_file, res_file, max_avg_nr_proposals = 100, \
+                   tiou_thresholds = np.linspace(0.5, 0.95, 10), subset='validation'):
+
+    anet_proposal = ANETproposal(gt_file, res_file,
                                  tiou_thresholds=tiou_thresholds,
                                  max_avg_nr_proposals=max_avg_nr_proposals,
                                  subset=subset, verbose=True, check_status=False)
@@ -21,6 +26,7 @@ def run_evaluation(ground_truth_filename, proposal_filename,
     average_nr_proposals = anet_proposal.proposals_per_video
 
     return (average_nr_proposals, average_recall, recall)
+
 
 def plot_metric(opt,average_nr_proposals, average_recall, recall, tiou_thresholds=np.linspace(0.5, 0.95, 10)):
 
@@ -54,15 +60,13 @@ def plot_metric(opt,average_nr_proposals, average_recall, recall, tiou_threshold
     #plt.show()
     plt.savefig(opt["save_fig_path"])
 
+
 def evaluation_proposal(opt):
 
-    uniform_average_nr_proposals_valid, uniform_average_recall_valid, uniform_recall_valid = run_evaluation(
-        "./Evaluation/data/activity_net_1_3_new.json",
-        opt["result_file"],
-        max_avg_nr_proposals=100,
-        tiou_thresholds=np.linspace(0.5, 0.95, 10),
-        subset='validation')
+    cache = run_evaluation('./Evaluation/data/activity_net_1_3_new.json', opt["result_file"], \
+            max_avg_nr_proposals = 100, tiou_thresholds = np.linspace(0.5, 0.95, 10), subset='validation')
 
+    uniform_average_nr_proposals_valid, uniform_average_recall_valid, uniform_recall_valid  = cache
     plot_metric(opt,uniform_average_nr_proposals_valid, uniform_average_recall_valid, uniform_recall_valid)
     print ("AR@1 is \t",np.mean(uniform_recall_valid[:,0]))
     print ("AR@5 is \t",np.mean(uniform_recall_valid[:,4]))

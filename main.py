@@ -37,7 +37,7 @@ def train_TEM(data_loader, model, optimizer, epoch, writer, opt):
     epoch_start_loss, epoch_end_loss = 0, 0
 
     for n_iter, (input_data,label_action,label_start,label_end) in enumerate(data_loader):
-        
+
         TEM_output = model(input_data) # batch_size x 3 x num_snappets    # TODO
         loss = TEM_loss_function(label_action, label_start, label_end, TEM_output, opt)
         cost = loss["cost"]
@@ -124,10 +124,10 @@ def BSN_Train_TEM(opt):
 def BSN_inference_TEM(opt):
     '''
     Inference of TEM
-    step - 1. load the best_model 
-    step - 2. the output of TEM is three pdf-curve for each scaled-video 
+    step - 1. load the best_model
+    step - 2. the output of TEM is three pdf-curve for each scaled-video
     '''
-    
+
     # step - 1
     model = TEM(opt)
     checkpoint = torch.load(opt["checkpoint_path"]+"/tem_best.pth.tar")
@@ -136,7 +136,7 @@ def BSN_inference_TEM(opt):
     model = torch.nn.DataParallel(model, device_ids=[0]).cuda()
 
     model.eval()
-    
+
     # step - 2
     # set subset = 'full' to generate the pdf of all video
     test_loader = torch.utils.data.DataLoader(VideoDataSet(opt,subset="full"),
@@ -248,11 +248,11 @@ def BSN_Train_PEM(opt):
 
 
 def BSN_inference_PEM(opt):
-    ''' 
+    '''
     step - 1. load the PEM-model
     step - 2. load the dataset
     '''
-    
+
     # step - 1
     model = PEM(opt)
     checkpoint = torch.load(opt["checkpoint_path"]+"/pem_best.pth.tar")
@@ -262,15 +262,15 @@ def BSN_inference_PEM(opt):
     model = torch.nn.DataParallel(model, device_ids=[0]).cuda()
 
     model.eval()
-    
+
     # pem_inference_subset = 'validation'
-    test_loader = torch.utils.data.DataLoader(ProposalDataSet(opt, subset=opt["pem_inference_subset"]),   
+    test_loader = torch.utils.data.DataLoader(ProposalDataSet(opt, subset=opt["pem_inference_subset"]),
                                                 batch_size=model.module.batch_size, shuffle=False,
                                                 num_workers=8, pin_memory=True, drop_last=False)
 
     count = 0
     for idx, (video_feature, video_xmin, video_xmax, video_xmin_score, video_xmax_score) in enumerate(test_loader):
-         
+
         video_name = test_loader.dataset.video_list[idx]
         video_conf = model(video_feature).view(-1).detach().cpu().numpy() # prob for proposal
         video_xmin = video_xmin.view(-1).cpu().numpy()
@@ -288,6 +288,7 @@ def BSN_inference_PEM(opt):
         df.to_csv("./output/PEM_results/"+video_name+".csv",index=False)
         count += 1
     print('there are %5d results' % count)
+
 
 def engine_runner(opt):
 
@@ -312,7 +313,7 @@ def engine_runner(opt):
         print ("PGM: start generate proposals")
         PGM_proposal_generation(opt)
         print ("PGM: finish generate proposals")
-        
+
         '''
         if not os.path.exists("output/PGM_feature"):
             os.makedirs("output/PGM_feature")
@@ -320,6 +321,7 @@ def engine_runner(opt):
         PGM_feature_generation(opt)
         print ("PGM: finish generate BSP feature")
         '''
+
     elif opt["module"] == "PEM":
         if opt["mode"] == "train":
             print ("PEM training start")
@@ -343,7 +345,7 @@ def engine_runner(opt):
         evaluation_proposal(opt)
 
     else:
-        print ("unknow module, it should be one of TEM, PGM,  PEM, Post_processing or Evaluation")
+        print ('unknow module, please check ...')
 
 
 if __name__ == '__main__':

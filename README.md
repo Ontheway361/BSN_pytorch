@@ -84,38 +84,9 @@ python main.py --module Post_processing
 ```
 python main.py --module Evaluation
 ```
-
 You can find evaluation figure in `./output`
 
 You can also simply run all above commands using:
-
 ```
 sh bsn.sh
-```
-
-# Other Info
-
-## Citation
-
-
-Please cite the following paper if you feel SSN useful to your research
-
-```
-@inproceedings{BSN2018arXiv,
-  author    = {Tianwei Lin and
-               Xu Zhao and
-               Haisheng Su and
-               Chongjing Wang and
-               Ming Yang},
-  title     = {BSN: Boundary Sensitive Network for Temporal Action Proposal Generation},
-  booktitle   = {European Conference on Computer Vision},
-  year      = {2018},
-}
-```
-
-
-## Contact
-For any question, please file an issue or contact
-```
-Tianwei Lin: wzmsltw@sjtu.edu.cn
 ```

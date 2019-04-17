@@ -1,11 +1,14 @@
+#!/usr/bin/env python4
+# -*- coding: utf-8 -*-
+"""
+Created on 2019/04/17
+author: lujie
+"""
+
 import json
-# import urllib2   # for Python 2
 import urllib
 import numpy as np
 import pandas as pd
-
-
-
 
 def interpolated_prec_rec(prec, rec):
     """Interpolated AP - VOCdevkit from VOC 2011.
@@ -17,6 +20,7 @@ def interpolated_prec_rec(prec, rec):
     idx = np.where(mrec[1::] != mrec[0:-1])[0] + 1
     ap = np.sum((mrec[idx] - mrec[idx - 1]) * mprec[idx])
     return ap
+
 
 def segment_iou(target_segment, candidate_segments):
     """Compute the temporal intersection over union between a
@@ -45,6 +49,7 @@ def segment_iou(target_segment, candidate_segments):
     # over union of two segments.
     tIoU = segments_intersection.astype(float) / segments_union
     return tIoU
+
 
 def wrapper_segment_iou(target_segments, candidate_segments):
     """Compute intersection over union btw segments
