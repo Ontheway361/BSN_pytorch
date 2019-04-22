@@ -201,7 +201,7 @@ def parse_opt():
         type=int,
         default=8)
     parser.add_argument(
-        '--soft_nms_alpha',
+        '--soft_nms_epsilon',
         type=float,
         default=0.75)
     parser.add_argument(

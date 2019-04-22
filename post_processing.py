@@ -65,7 +65,7 @@ def Soft_NMS(df, opt):
         max_index = np.argmax(tscore)
         tmp_width = tend[max_index] -tstart[max_index]
         iou_list = iou_with_anchors(tstart[max_index], tend[max_index], np.array(tstart), np.array(tend))
-        iou_exp_list = np.exp(-np.square(iou_list) / opt['soft_nms_alpha'])  # default : soft_nms_alpha = 0.75
+        iou_exp_list = np.exp(-np.square(iou_list) / opt['soft_nms_epsilon'])  # default : soft_nms_epsilon = 0.75
 
         for idx in range(len(tscore)):
             if idx != max_index:
